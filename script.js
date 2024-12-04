@@ -144,3 +144,46 @@ var init = function () {
 var s = document.readyState;
 if (s === 'complete' || s === 'loaded' || s === 'interactive') init();
 else document.addEventListener('DOMContentLoaded', init, false);
+
+const canvas = document.getElementById("heart");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Call your drawing function again to adjust for the new size
+    drawHeart();
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+function drawHeart() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Your heart drawing code here
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, canvas.height / 3);
+    ctx.bezierCurveTo(
+        canvas.width / 2 - 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2 - 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2,
+        canvas.height / 2
+    );
+    ctx.bezierCurveTo(
+        canvas.width / 2 + 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2 + 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2,
+        canvas.height / 3
+    );
+    ctx.fill();
+}
+
+// Initial canvas setup
+resizeCanvas();
