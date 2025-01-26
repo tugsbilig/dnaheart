@@ -12,6 +12,7 @@ window.requestAnimationFrame =
                     lastTime = 0;
                 }
                 var currTime = Date.now();
+
                 var timeToCall = Math.max(1, 33 - (currTime - lastTime));
                 window.setTimeout(callback, timeToCall);
                 element.__lastTime = currTime + timeToCall;
