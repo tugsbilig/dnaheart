@@ -144,7 +144,6 @@ class HeartAnimation {
             if (particle.q < 0) particle.q += this.pointsOrigin.length;
           }
         }
-<<<<<<< HEAD
   
         particle.vx += (-dx / distance) * particle.speed;
         particle.vy += (-dy / distance) * particle.speed;
@@ -187,14 +186,13 @@ class HeartAnimation {
   document.addEventListener('DOMContentLoaded', () => {
     new HeartAnimation();
   });
-=======
         //ctx.fillStyle = "rgba(255,255,255,1)";
         //for (i = u.trace.length; i--;) ctx.fillRect(targetPoints[i][0], targetPoints[i][1], 2, 2);
 
         window.requestAnimationFrame(loop, canvas);
-    };
+    
     loop();
-};
+
 
 var s = document.readyState;
 if (s === 'complete' || s === 'loaded' || s === 'interactive') init();
@@ -242,4 +240,4 @@ function drawHeart() {
 
 // Initial canvas setup
 resizeCanvas();
->>>>>>> 8c068c1860a7d723e32cdd1ac6b98fb7896e56e2
+ 
