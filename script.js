@@ -1,152 +1,188 @@
-window.requestAnimationFrame =
-    window.__requestAnimationFrame ||
+class HeartAnimation {
+    constructor() {
+      this.initRAF();
+      this.isMobile = this.checkIfMobile();
+      this.loaded = false;
+      this.canvas = document.getElementById('heart');
+      this.ctx = this.canvas.getContext('2d');
+      this.particles = [];
+      this.targetPoints = [];
+      this.pointsOrigin = [];
+      this.config = {
+        traceK: 0.4,
+        timeDelta: 0.01,
+        colors: {
+          primary: '#ff3366',
+          secondary: '#ff6699',
+          tertiary: '#ff99cc',
+          background: 'rgba(10, 5, 15, 0.8)'
+        }
+      };
+      
+      this.init();
+    }
+  
+    initRAF() {
+      window.requestAnimationFrame = 
+        window.__requestAnimationFrame ||
         window.requestAnimationFrame ||
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame ||
         window.oRequestAnimationFrame ||
         window.msRequestAnimationFrame ||
-        (function () {
-            return function (callback, element) {
-                var lastTime = element.__lastTime;
-                if (lastTime === undefined) {
-                    lastTime = 0;
-                }
-                var currTime = Date.now();
-
-                var timeToCall = Math.max(1, 33 - (currTime - lastTime));
-                window.setTimeout(callback, timeToCall);
-                element.__lastTime = currTime + timeToCall;
-            };
-        })();
-window.isDevice = (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(((navigator.userAgent || navigator.vendor || window.opera)).toLowerCase()));
-var loaded = false;
-var init = function () {
-    if (loaded) return;
-    loaded = true;
-    var mobile = window.isDevice;
-    var koef = mobile ? 0.5 : 1;
-    var canvas = document.getElementById('heart');
-    var ctx = canvas.getContext('2d');
-    var width = canvas.width = koef * innerWidth;
-    var height = canvas.height = koef * innerHeight;
-    var rand = Math.random;
-    ctx.fillStyle = "rgba(0,0,0,1)";
-    ctx.fillRect(0, 0, width, height);
-
-    var heartPosition = function (rad) {
-        //return [Math.sin(rad), Math.cos(rad)];
-        return [Math.pow(Math.sin(rad), 3), -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))];
-    };
-    var scaleAndTranslate = function (pos, sx, sy, dx, dy) {
-        return [dx + pos[0] * sx, dy + pos[1] * sy];
-    };
-
-    window.addEventListener('resize', function () {
-        width = canvas.width = koef * innerWidth;
-        height = canvas.height = koef * innerHeight;
-        ctx.fillStyle = "rgba(0,0,0,1)";
-        ctx.fillRect(0, 0, width, height);
-    });
-
-    var traceCount = mobile ? 20 : 50;
-    var pointsOrigin = [];
-    var i;
-    var dr = mobile ? 0.3 : 0.1;
-    for (i = 0; i < Math.PI * 2; i += dr) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 210, 13, 0, 0));
-    for (i = 0; i < Math.PI * 2; i += dr) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 150, 9, 0, 0));
-    for (i = 0; i < Math.PI * 2; i += dr) pointsOrigin.push(scaleAndTranslate(heartPosition(i), 90, 5, 0, 0));
-    var heartPointsCount = pointsOrigin.length;
-
-    var targetPoints = [];
-    var pulse = function (kx, ky) {
-        for (i = 0; i < pointsOrigin.length; i++) {
-            targetPoints[i] = [];
-            targetPoints[i][0] = kx * pointsOrigin[i][0] + width / 2;
-            targetPoints[i][1] = ky * pointsOrigin[i][1] + height / 2;
-        }
-    };
-
-    var e = [];
-    for (i = 0; i < heartPointsCount; i++) {
-        var x = rand() * width;
-        var y = rand() * height;
-        e[i] = {
-            vx: 0,
-            vy: 0,
-            R: 2,
-            speed: rand() + 5,
-            q: ~~(rand() * heartPointsCount),
-            D: 2 * (i % 2) - 1,
-            force: 0.2 * rand() + 0.7,
-            f: "hsla(240," + ~~(20 * rand() + 60) + "%," + ~~(10 * rand() + 20) + "%,.3)",
-            trace: []
-        };
-        for (var k = 0; k < traceCount; k++) e[i].trace[k] = {x: x, y: y};
+        ((callback) => window.setTimeout(callback, 1000/60));
     }
-
-    var config = {
-        traceK: 0.4,
-        timeDelta: 0.01
-    };
-
-    var time = 0;
-    var loop = function () {
-        var n = -Math.cos(time);
-        pulse((1 + n) * .5, (1 + n) * .5);
-        time += ((Math.sin(time)) < 0 ? 9 : (n > 0.8) ? .2 : 1) * config.timeDelta;
-        ctx.fillStyle = "rgba(0,0,0,.1)";
-        ctx.fillRect(0, 0, width, height);
-        for (i = e.length; i--;) {
-            var u = e[i];
-            var q = targetPoints[u.q];
-            var dx = u.trace[0].x - q[0];
-            var dy = u.trace[0].y - q[1];
-            var length = Math.sqrt(dx * dx + dy * dy);
-            if (10 > length) {
-                if (0.95 < rand()) {
-                    u.q = ~~(rand() * heartPointsCount);
-                }
-                else {
-                    if (0.99 < rand()) {
-                        u.D *= -1;
-                    }
-                    u.q += u.D;
-                    u.q %= heartPointsCount;
-                    if (0 > u.q) {
-                        u.q += heartPointsCount;
-                    }
-                }
+  
+    checkIfMobile() {
+      return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        (navigator.userAgent || navigator.vendor || window.opera).toLowerCase()
+      );
+    }
+  
+    heartPosition(rad) {
+      return [
+        Math.pow(Math.sin(rad), 3), 
+        -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))
+      ];
+    }
+  
+    scaleAndTranslate(pos, sx, sy, dx, dy) {
+      return [dx + pos[0] * sx, dy + pos[1] * sy];
+    }
+  
+    resizeCanvas() {
+      const koef = this.isMobile ? 0.5 : 1;
+      this.canvas.width = koef * window.innerWidth;
+      this.canvas.height = koef * window.innerHeight;
+      this.ctx.fillStyle = this.config.colors.background;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  
+    generateGradient(x, y, radius) {
+      const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, this.config.colors.primary);
+      gradient.addColorStop(0.5, this.config.colors.secondary);
+      gradient.addColorStop(1, this.config.colors.tertiary);
+      return gradient;
+    }
+  
+    init() {
+      if (this.loaded) return;
+      this.loaded = true;
+  
+      this.resizeCanvas();
+      window.addEventListener('resize', () => this.resizeCanvas());
+  
+      // Create heart shape points
+      const dr = this.isMobile ? 0.3 : 0.1;
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 210, 13, 0, 0));
+      }
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 150, 9, 0, 0));
+      }
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 90, 5, 0, 0));
+      }
+  
+      // Create particles
+      const traceCount = this.isMobile ? 20 : 50;
+      for (let i = 0; i < this.pointsOrigin.length; i++) {
+        const x = Math.random() * this.canvas.width;
+        const y = Math.random() * this.canvas.height;
+        
+        this.particles.push({
+          vx: 0,
+          vy: 0,
+          radius: 2 + Math.random() * 2,
+          speed: Math.random() * 2 + 3,
+          q: ~~(Math.random() * this.pointsOrigin.length),
+          direction: 2 * (i % 2) - 1,
+          force: 0.2 * Math.random() + 0.7,
+          color: this.generateGradient(x, y, 50),
+          trace: Array(traceCount).fill().map(() => ({x, y}))
+        });
+      }
+  
+      this.time = 0;
+      this.loop();
+    }
+  
+    pulse(kx, ky) {
+      for (let i = 0; i < this.pointsOrigin.length; i++) {
+        this.targetPoints[i] = [
+          kx * this.pointsOrigin[i][0] + this.canvas.width / 2,
+          ky * this.pointsOrigin[i][1] + this.canvas.height / 2
+        ];
+      }
+    }
+  
+    loop() {
+      const n = -Math.cos(this.time);
+      this.pulse((1 + n) * 0.5, (1 + n) * 0.5);
+      this.time += ((Math.sin(this.time) < 0 ? 9 : (n > 0.8) ? 0.2 : 1) * this.config.timeDelta);
+      
+      // Clear with fade effect
+      this.ctx.fillStyle = this.config.colors.background;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  
+      // Update and draw particles
+      for (const particle of this.particles) {
+        const target = this.targetPoints[particle.q];
+        const dx = particle.trace[0].x - target[0];
+        const dy = particle.trace[0].y - target[1];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+  
+        if (distance < 10) {
+          if (Math.random() > 0.95) {
+            particle.q = ~~(Math.random() * this.pointsOrigin.length);
+          } else {
+            if (Math.random() > 0.99) {
+              particle.direction *= -1;
             }
-            u.vx += -dx / length * u.speed;
-            u.vy += -dy / length * u.speed;
-            u.trace[0].x += u.vx;
-            u.trace[0].y += u.vy;
-            u.vx *= u.force;
-            u.vy *= u.force;
-            for (k = 0; k < u.trace.length - 1;) {
-                var T = u.trace[k];
-                var N = u.trace[++k];
-                N.x -= config.traceK * (N.x - T.x);
-                N.y -= config.traceK * (N.y - T.y);
-            }
-            ctx.fillStyle = u.f;
-            for (k = 0; k < u.trace.length; k++) {
-                ctx.fillRect(u.trace[k].x, u.trace[k].y, 1, 1);
-            }
+            particle.q = (particle.q + particle.direction) % this.pointsOrigin.length;
+            if (particle.q < 0) particle.q += this.pointsOrigin.length;
+          }
         }
-        //ctx.fillStyle = "rgba(255,255,255,1)";
-        //for (i = u.trace.length; i--;) ctx.fillRect(targetPoints[i][0], targetPoints[i][1], 2, 2);
-
-        window.requestAnimationFrame(loop, canvas);
-    };
-    loop();
-};
-
-var s = document.readyState;
-if (s === 'complete' || s === 'loaded' || s === 'interactive') init();
-else document.addEventListener('DOMContentLoaded', init, false);
-
-const canvas = document.getElementById("heart");
-const ctx = canvas.getContext("2d");
-
-
+  
+        particle.vx += (-dx / distance) * particle.speed;
+        particle.vy += (-dy / distance) * particle.speed;
+        particle.trace[0].x += particle.vx;
+        particle.trace[0].y += particle.vy;
+        particle.vx *= particle.force;
+        particle.vy *= particle.force;
+  
+        // Update trace positions
+        for (let k = 1; k < particle.trace.length; k++) {
+          particle.trace[k].x -= this.config.traceK * (particle.trace[k].x - particle.trace[k-1].x);
+          particle.trace[k].y -= this.config.traceK * (particle.trace[k].y - particle.trace[k-1].y);
+        }
+  
+        // Draw particle trace
+        for (let k = 0; k < particle.trace.length; k++) {
+          const alpha = k / particle.trace.length;
+          this.ctx.globalAlpha = alpha * 0.7;
+          this.ctx.fillStyle = particle.color;
+          
+          // Draw circles instead of rectangles for smoother look
+          this.ctx.beginPath();
+          this.ctx.arc(
+            particle.trace[k].x, 
+            particle.trace[k].y, 
+            particle.radius * (1 - alpha * 0.7), 
+            0, 
+            Math.PI * 2
+          );
+          this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1;
+      }
+  
+      window.requestAnimationFrame(() => this.loop());
+    }
+  }
+  
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    new HeartAnimation();
+  });
