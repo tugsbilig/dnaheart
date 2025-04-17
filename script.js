@@ -1,202 +1,243 @@
-class BlueHeartAnimation {
+class HeartAnimation {
     constructor() {
-      // Configuration
+      this.initRAF();
+      this.isMobile = this.checkIfMobile();
+      this.loaded = false;
+      this.canvas = document.getElementById('heart');
+      this.ctx = this.canvas.getContext('2d');
+      this.particles = [];
+      this.targetPoints = [];
+      this.pointsOrigin = [];
       this.config = {
+        traceK: 0.4,
+        timeDelta: 0.01,
         colors: {
-          primary: '#00a8ff',    // Bright blue
-          secondary: '#0097e6',  // Medium blue
-          tertiary: '#0077b6',   // Deep blue
-          background: 'rgba(5, 10, 20, 0.8)'  // Dark blue-black
-        },
-        desktop: {
-          particleCount: 120,
-          traceLength: 50,
-          detail: 0.1
-        },
-        mobile: {
-          particleCount: 60,
-          traceLength: 20,
-          detail: 0.3
+          primary: '#ff3386',
+          secondary: '#ff6899',
+          tertiary: '#ff99cc',
+          background: 'rgba(10, 5, 15, 0.8)'
         }
       };
-  
-      // Initialize
-      this.initRAF();
-      this.detectDevice();
-      this.setupCanvas();
-      this.createHeartShape();
-      this.createParticles();
-      this.startAnimation();
+      
+      this.init();
     }
   
     initRAF() {
       window.requestAnimationFrame = 
+        window.__requestAnimationFrame ||
         window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame || 
+        window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame ||
-        ((callback) => setTimeout(callback, 1000/60));
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        ((callback) => window.setTimeout(callback, 1000/60));
     }
   
-    detectDevice() {
-      this.isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      this.settings = this.isMobile ? this.config.mobile : this.config.desktop;
-      this.lowPowerMode = this.isMobile && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-  
-    setupCanvas() {
-      this.canvas = document.getElementById('heart');
-      this.ctx = this.canvas.getContext('2d');
-      this.resizeCanvas();
-      window.addEventListener('resize', () => this.resizeCanvas());
-    }
-  
-    resizeCanvas() {
-      const scale = this.isMobile ? window.devicePixelRatio || 1 : 1;
-      this.canvas.width = window.innerWidth * scale;
-      this.canvas.height = window.innerHeight * scale;
-      this.canvas.style.width = '100%';
-      this.canvas.style.height = '100%';
-      this.ctx.scale(scale, scale);
+    checkIfMobile() {
+      return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        (navigator.userAgent || navigator.vendor || window.opera).toLowerCase()
+      );
     }
   
     heartPosition(rad) {
       return [
-        Math.pow(Math.sin(rad), 3),
-        -(15 * Math.cos(rad) - 5 * Math.cos(2*rad) - 2 * Math.cos(3*rad) - Math.cos(4*rad))
+        Math.pow(Math.sin(rad), 3), 
+        -(15 * Math.cos(rad) - 5 * Math.cos(2 * rad) - 2 * Math.cos(3 * rad) - Math.cos(4 * rad))
       ];
     }
   
-    createHeartShape() {
-      this.pointsOrigin = [];
-      for (let i = 0; i < Math.PI*2; i += this.settings.detail) {
-        const scale = this.isMobile ? 0.7 : 1;
-        this.pointsOrigin.push([
-          200 * scale * Math.pow(Math.sin(i), 3),
-          -scale * (13 * Math.cos(i) - 5 * Math.cos(2*i) - 2 * Math.cos(3*i) - Math.cos(4*i))
-        ]);
-      }
+    scaleAndTranslate(pos, sx, sy, dx, dy) {
+      return [dx + pos[0] * sx, dy + pos[1] * sy];
     }
   
-    createParticles() {
-      this.particles = [];
-      for (let i = 0; i < this.settings.particleCount; i++) {
-        const x = Math.random() * this.canvas.width;
-        const y = Math.random() * this.canvas.height;
-        
-        this.particles.push({
-          x, y,
-          vx: 0, vy: 0,
-          size: 2 + Math.random() * 2,
-          speed: 1 + Math.random() * 3,
-          targetIndex: Math.floor(Math.random() * this.pointsOrigin.length),
-          trace: Array(this.settings.traceLength).fill().map(() => ({x, y})),
-          color: this.getParticleColor(x, y)
-        });
-      }
+    resizeCanvas() {
+      const koef = this.isMobile ? 0.5 : 1;
+      this.canvas.width = koef * window.innerWidth;
+      this.canvas.height = koef * window.innerHeight;
+      this.ctx.fillStyle = this.config.colors.background;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
   
-    getParticleColor(x, y) {
-      if (this.lowPowerMode) {
-        return `hsla(200, 100%, 60%, ${0.4 + Math.random() * 0.3})`;
-      }
-      
-      const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 50);
+    generateGradient(x, y, radius) {
+      const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius);
       gradient.addColorStop(0, this.config.colors.primary);
-      gradient.addColorStop(0.7, this.config.colors.secondary);
+      gradient.addColorStop(0.5, this.config.colors.secondary);
       gradient.addColorStop(1, this.config.colors.tertiary);
       return gradient;
     }
   
-    updateParticle(particle) {
-      const target = this.pointsOrigin[particle.targetIndex];
-      const targetX = target[0] + this.canvas.width/2;
-      const targetY = target[1] + this.canvas.height/2;
-      
-      const dx = targetX - particle.x;
-      const dy = targetY - particle.y;
-      const distance = Math.sqrt(dx*dx + dy*dy);
-      
-      if (distance < 10) {
-        if (Math.random() > 0.95) {
-          particle.targetIndex = Math.floor(Math.random() * this.pointsOrigin.length);
-        }
-      }
-      
-      particle.vx += dx/distance * particle.speed * 0.1;
-      particle.vy += dy/distance * particle.speed * 0.1;
-      
-      particle.x += particle.vx;
-      particle.y += particle.vy;
-      
-      particle.vx *= 0.85;
-      particle.vy *= 0.85;
-      
-      // Update trace
-      particle.trace.pop();
-      particle.trace.unshift({x: particle.x, y: particle.y});
-    }
+    init() {
+      if (this.loaded) return;
+      this.loaded = true;
   
-    drawParticle(particle) {
-      if (this.lowPowerMode) {
-        this.ctx.beginPath();
-        this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI*2);
-        this.ctx.fillStyle = particle.color;
-        this.ctx.fill();
-        return;
-      }
-      
-      for (let i = 0; i < particle.trace.length; i++) {
-        const alpha = i/particle.trace.length;
-        this.ctx.beginPath();
-        this.ctx.arc(
-          particle.trace[i].x,
-          particle.trace[i].y,
-          particle.size * (1 - alpha*0.7),
-          0,
-          Math.PI*2
-        );
-        this.ctx.fillStyle = this.adjustAlpha(particle.color, alpha*0.7);
-        this.ctx.fill();
-      }
-    }
+      this.resizeCanvas();
+      window.addEventListener('resize', () => this.resizeCanvas());
   
-    adjustAlpha(color, alpha) {
-      if (typeof color === 'string') {
-        return color.replace(/[\d\.]+\)$/, alpha + ')');
+      // Create heart shape points
+      const dr = this.isMobile ? 0.3 : 0.1;
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 210, 13, 0, 0));
       }
-      return color;
-    }
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 150, 9, 0, 0));
+      }
+      for (let i = 0; i < Math.PI * 2; i += dr) {
+        this.pointsOrigin.push(this.scaleAndTranslate(this.heartPosition(i), 90, 5, 0, 0));
+      }
   
-    startAnimation() {
+      // Create particles
+      const traceCount = this.isMobile ? 20 : 50;
+      for (let i = 0; i < this.pointsOrigin.length; i++) {
+        const x = Math.random() * this.canvas.width;
+        const y = Math.random() * this.canvas.height;
+        
+        this.particles.push({
+          vx: 0,
+          vy: 0,
+          radius: 2 + Math.random() * 2,
+          speed: Math.random() * 2 + 3,
+          q: ~~(Math.random() * this.pointsOrigin.length),
+          direction: 2 * (i % 2) - 1,
+          force: 0.2 * Math.random() + 0.7,
+          color: this.generateGradient(x, y, 50),
+          trace: Array(traceCount).fill().map(() => ({x, y}))
+        });
+      }
+  
       this.time = 0;
-      this.lastTime = performance.now();
-      this.animate();
+      this.loop();
     }
   
-    animate() {
-      const now = performance.now();
-      const deltaTime = Math.min(now - this.lastTime, 1000/30);
-      this.lastTime = now;
+    pulse(kx, ky) {
+      for (let i = 0; i < this.pointsOrigin.length; i++) {
+        this.targetPoints[i] = [
+          kx * this.pointsOrigin[i][0] + this.canvas.width / 2,
+          ky * this.pointsOrigin[i][1] + this.canvas.height / 2
+        ];
+      }
+    }
+  
+    loop() {
+      const n = -Math.cos(this.time);
+      this.pulse((1 + n) * 0.5, (1 + n) * 0.5);
+      this.time += ((Math.sin(this.time) < 0 ? 9 : (n > 0.8) ? 0.2 : 1) * this.config.timeDelta);
       
       // Clear with fade effect
-      this.ctx.fillStyle = this.config.background;
+      this.ctx.fillStyle = this.config.colors.background;
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      
-      // Update heart pulse
-      this.time += deltaTime * 0.001;
-      const pulse = 0.5 * (1 - Math.cos(this.time * 1.5));
-      
+  
       // Update and draw particles
       for (const particle of this.particles) {
-        this.updateParticle(particle);
-        this.drawParticle(particle);
+        const target = this.targetPoints[particle.q];
+        const dx = particle.trace[0].x - target[0];
+        const dy = particle.trace[0].y - target[1];
+        const distance = Math.sqrt(dx * dx + dy * dy);
+  
+        if (distance < 10) {
+          if (Math.random() > 0.95) {
+            particle.q = ~~(Math.random() * this.pointsOrigin.length);
+          } else {
+            if (Math.random() > 0.99) {
+              particle.direction *= -1;
+            }
+            particle.q = (particle.q + particle.direction) % this.pointsOrigin.length;
+            if (particle.q < 0) particle.q += this.pointsOrigin.length;
+          }
+        }
+  
+        particle.vx += (-dx / distance) * particle.speed;
+        particle.vy += (-dy / distance) * particle.speed;
+        particle.trace[0].x += particle.vx;
+        particle.trace[0].y += particle.vy;
+        particle.vx *= particle.force;
+        particle.vy *= particle.force;
+  
+        // Update trace positions
+        for (let k = 1; k < particle.trace.length; k++) {
+          particle.trace[k].x -= this.config.traceK * (particle.trace[k].x - particle.trace[k-1].x);
+          particle.trace[k].y -= this.config.traceK * (particle.trace[k].y - particle.trace[k-1].y);
+        }
+  
+        // Draw particle trace
+        for (let k = 0; k < particle.trace.length; k++) {
+          const alpha = k / particle.trace.length;
+          this.ctx.globalAlpha = alpha * 0.7;
+          this.ctx.fillStyle = particle.color;
+          
+          // Draw circles instead of rectangles for smoother look
+          this.ctx.beginPath();
+          this.ctx.arc(
+            particle.trace[k].x, 
+            particle.trace[k].y, 
+            particle.radius * (1 - alpha * 0.7), 
+            0, 
+            Math.PI * 2
+          );
+          this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1;
       }
-      
-      requestAnimationFrame(() => this.animate());
+  
+      window.requestAnimationFrame(() => this.loop());
     }
   }
   
-  // Start when page loads
+  // Initialize when DOM is ready
   document.addEventListener('DOMContentLoaded', () => {
-    new BlueHeartAnimation();
+    new HeartAnimation();
   });
+        //ctx.fillStyle = "rgba(255,255,255,1)";
+        //for (i = u.trace.length; i--;) ctx.fillRect(targetPoints[i][0], targetPoints[i][1], 2, 2);
+
+        window.requestAnimationFrame(loop, canvas);
+    
+    loop();
+
+
+var s = document.readyState;
+if (s === 'complete' || s === 'loaded' || s === 'interactive') init();
+else document.addEventListener('DOMContentLoaded', init, false);
+
+const canvas = document.getElementById("heart");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Call your drawing function again to adjust for the new size
+    drawHeart();
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+function drawHeart() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Your heart drawing code here
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, canvas.height / 3);
+    ctx.bezierCurveTo(
+        canvas.width / 2 - 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2 - 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2,
+        canvas.height / 2
+    );
+    ctx.bezierCurveTo(
+        canvas.width / 2 + 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2 + 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2,
+        canvas.height / 3
+    );
+    ctx.fill();
+}
+
+// Initial canvas setup
+resizeCanvas();
+ 
