@@ -144,6 +144,7 @@ class HeartAnimation {
             if (particle.q < 0) particle.q += this.pointsOrigin.length;
           }
         }
+<<<<<<< HEAD
   
         particle.vx += (-dx / distance) * particle.speed;
         particle.vy += (-dy / distance) * particle.speed;
@@ -186,3 +187,59 @@ class HeartAnimation {
   document.addEventListener('DOMContentLoaded', () => {
     new HeartAnimation();
   });
+=======
+        //ctx.fillStyle = "rgba(255,255,255,1)";
+        //for (i = u.trace.length; i--;) ctx.fillRect(targetPoints[i][0], targetPoints[i][1], 2, 2);
+
+        window.requestAnimationFrame(loop, canvas);
+    };
+    loop();
+};
+
+var s = document.readyState;
+if (s === 'complete' || s === 'loaded' || s === 'interactive') init();
+else document.addEventListener('DOMContentLoaded', init, false);
+
+const canvas = document.getElementById("heart");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Call your drawing function again to adjust for the new size
+    drawHeart();
+}
+
+window.addEventListener("resize", resizeCanvas);
+
+function drawHeart() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Your heart drawing code here
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, canvas.height / 3);
+    ctx.bezierCurveTo(
+        canvas.width / 2 - 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2 - 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2,
+        canvas.height / 2
+    );
+    ctx.bezierCurveTo(
+        canvas.width / 2 + 150,
+        canvas.height / 3 + 50,
+        canvas.width / 2 + 50,
+        canvas.height / 4 - 50,
+        canvas.width / 2,
+        canvas.height / 3
+    );
+    ctx.fill();
+}
+
+// Initial canvas setup
+resizeCanvas();
+>>>>>>> 8c068c1860a7d723e32cdd1ac6b98fb7896e56e2
